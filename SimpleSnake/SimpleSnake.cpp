@@ -1,8 +1,10 @@
 #include <iostream>
 #include <string>
+#include <conio.h>
+#include <windows.h>
 
 #define STARTING_LENGTH 5
-// TODO: Define map clear depending on the system
+#define TICKRATE 300 // miliseconds
 
 
 const int map_width = 60, map_height = 20;
@@ -11,11 +13,13 @@ constexpr int starting_position = 4 + (4 * map_width);
 const int wall_number = map_size + 1;
 
 enum class Direction {
-	Left,
-	Down,
-	Up,
-	Right
+	// Numbers are used to determine the axis left and right are horizontal (X % 2 = 0), up and down are vertical (X % = 1)
+	Left = 0,
+	Down = 1,
+	Up = 3,
+	Right = 2
 };
+
 
 class Snake {
 	private:
@@ -48,8 +52,16 @@ public:
 	int get_length() const {
 		return length;
 	}
+	Direction get_heading() const {
+		return heading;
+	}
+
 	void set_heading(Direction new_heading) {
 		heading = new_heading;
+	}
+	
+	void grow() {
+		length++;
 	}
 };
 
@@ -117,15 +129,67 @@ public:
 		}
 	}
 
+	bool check_direction(Direction new_direction) {
+		if (new_direction == snake.get_heading()) {
+			return true; // No change in direction
+		}
+		int axis = (int)snake.get_heading() % 2 == 0 ? 0 : 1; // 0 for horizontal, 1 for vertical
+
+		switch (new_direction) {
+		case Direction::Left:
+		case Direction::Right:
+			if (axis == 0) {
+				return false;
+			}
+			break;
+		case Direction::Down:
+		case Direction::Up:
+			if (axis == 1) {
+				return false;
+			}
+			break;
+		}
+		return true;
+	}
+
 	void player_input() {
-		// TODO: Implement player input handling
+		char input = '_';
+
+		Sleep(TICKRATE); // Sleep for TICKRATE miliseconds
+		if (_kbhit()) { //if there is a key in keyboard buffer
+			input = _getch(); //get the char
+		}	
+
+		
+		switch (input) {
+		case 'k':
+			if (check_direction(Direction::Up)) {
+				snake.set_heading(Direction::Up);
+			}
+			break;
+		case 'j':
+			if (check_direction(Direction::Down)) {
+				snake.set_heading(Direction::Down);
+			}
+			break;
+		case 'h':
+			if (check_direction(Direction::Left)) {
+				snake.set_heading(Direction::Left);
+			}
+			break;
+		case 'l':
+			if (check_direction(Direction::Right)) {
+				snake.set_heading(Direction::Right);
+			}
+			break;
+		}
 	}
 
 	void game_logic() {
 		// TODO: Implement collion detection, food generation, and snake growth
 		while (!game_over) {
+			player_input(); // Get player input
 			system("cls");
-			player_input();
 			snake.move();
 			draw_snake();
 			prepare_map_buffer();
@@ -135,6 +199,14 @@ public:
 
 };
 
+void welcome_message() {
+	printf("Welcome to Simple Snake Game!\n");
+	printf("Controls: Use 'h' for left, 'j' for down, 'k' for up, and 'l' for right.\n");
+	printf("\nPress any key to start...\n");
+	_getch(); // Wait for user input
+	system("cls"); // Clear the console
+}
+
 
 
 
@@ -142,7 +214,7 @@ public:
 int main(int argc, char** argv) {
 	Snake snake(Direction::Right, starting_position, STARTING_LENGTH);
 	Game game(snake);
-	// TODO: Implement Welcome message and instructions
-	game.draw_map();
+	welcome_message();
+	game.draw_map(); // Initial map display
 	game.game_logic();
 }
