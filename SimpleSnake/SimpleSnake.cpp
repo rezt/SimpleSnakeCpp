@@ -2,15 +2,18 @@
 #include <string>
 #include <conio.h>
 #include <windows.h>
+#include <cstdlib>
 
 #define STARTING_LENGTH 5
 #define TICKRATE 300 // miliseconds
+#define SPAWN_RATE 5 // how many ticks before spawning food
 
 
 const int map_width = 60, map_height = 20;
 constexpr int map_size = map_width * map_height;
 constexpr int starting_position = 4 + (4 * map_width);
 const int wall_number = map_size + 1;
+const int food_number = map_size + 2;
 
 enum class Direction {
 	// Numbers are used to determine the axis left and right are horizontal (X % 2 = 0), up and down are vertical (X % = 1)
@@ -89,6 +92,9 @@ public:
 					break;
 				case wall_number:
 					buffer[position] = '#';
+					break;
+				case food_number:
+					buffer[position] = 'x';
 					break;
 				default:
 					map[position]--;
@@ -182,18 +188,49 @@ public:
 				snake.set_heading(Direction::Right);
 			}
 			break;
+		case 'q':
+			game_over = true;
+			break;
 		}
+	}
+
+	bool check_collision() {
+		int position = snake.get_position();
+		if (map[position] == wall_number) {
+			return true; // Collision with wall or self
+		}
+		else if (map[position] == food_number) {
+			snake.grow(); // Snake eats food
+			map[position] = snake.get_length(); // Update snake length at position
+		}
+		else {
+			map[position] = snake.get_length(); // Update snake position with its length
+		}
+		return false;
+	}
+
+	void spawn_food() {
+		int x = rand() % (map_width - 2) + 1; // Random x position, avoiding walls
+		int y = rand() % (map_height - 2) + 1; // Random y position, avoiding walls
+		map[y * map_width + x] = food_number; 
 	}
 
 	void game_logic() {
 		// TODO: Implement collion detection, food generation, and snake growth
-		while (!game_over) {
+		int tick = 0;
+		while (!game_over) {			
 			player_input(); // Get player input
 			system("cls");
 			snake.move();
+			if (check_collision()) { game_over = true; break; }// Check for collisions
 			draw_snake();
+			if (tick == SPAWN_RATE) {
+				spawn_food();
+				tick = 0;
+			}
 			prepare_map_buffer();
 			draw_map();
+			tick++;
 		}
 	}
 
@@ -201,15 +238,11 @@ public:
 
 void welcome_message() {
 	printf("Welcome to Simple Snake Game!\n");
-	printf("Controls: Use 'h' for left, 'j' for down, 'k' for up, and 'l' for right.\n");
+	printf("Controls: Use 'h' for left, 'j' for down, 'k' for up, and 'l' for right. Press 'q' to quit.\n");
 	printf("\nPress any key to start...\n");
 	_getch(); // Wait for user input
 	system("cls"); // Clear the console
 }
-
-
-
-
 
 int main(int argc, char** argv) {
 	Snake snake(Direction::Right, starting_position, STARTING_LENGTH);
