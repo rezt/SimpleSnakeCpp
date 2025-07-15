@@ -74,6 +74,8 @@ private:
 	int map[map_size] = { 0 };
 	char buffer[map_size + map_height];
 	bool game_over = false;
+	int tickrate = TICKRATE;
+	int difficulty_adjustment = 0;
 
 public:
 	Game(Snake& snake) : snake(snake) {
@@ -161,7 +163,7 @@ public:
 	void player_input() {
 		char input = '_';
 
-		Sleep(TICKRATE); // Sleep for TICKRATE miliseconds
+		Sleep(tickrate - difficulty_adjustment); // Sleep for TICKRATE miliseconds
 		if (_kbhit()) { //if there is a key in keyboard buffer
 			input = _getch(); //get the char
 		}	
@@ -196,12 +198,12 @@ public:
 
 	bool check_collision() {
 		int position = snake.get_position();
-		if (map[position] == wall_number) {
-			return true; // Collision with wall or self
-		}
-		else if (map[position] == food_number) {
+		if (map[position] == food_number) {
 			snake.grow(); // Snake eats food
+			difficulty_change(); // Check if difficulty should change
 			map[position] = snake.get_length(); // Update snake length at position
+		} else if (map[position] != 0) { // Collision with wall or itself
+			return true; // Collision detected
 		}
 		else {
 			map[position] = snake.get_length(); // Update snake position with its length
@@ -234,6 +236,18 @@ public:
 		}
 	}
 
+	void difficulty_change() {
+		if (snake.get_length() % 5 == 0 && snake.get_length() > STARTING_LENGTH) {
+			if (tickrate > 50) { // Minimum tick rate to avoid too fast gameplay
+				tickrate -= 50; // Increase game speed
+			}
+		}
+	}
+
+	int get_score() {
+		return snake.get_length() - STARTING_LENGTH; // Returns the score based on the snake's length
+	}
+
 };
 
 void welcome_message() {
@@ -244,10 +258,20 @@ void welcome_message() {
 	system("cls"); // Clear the console
 }
 
+void score_screen(int score) {
+	system("cls");
+	printf("Game Over! Your score: %d\n", score);
+	Sleep(1000); // Wait for 1 second to avoid exiting by mistake
+	printf("Press any key to exit...\n");
+	_getch(); // Wait for user input
+	system("cls"); // Clear the console
+}
+
 int main(int argc, char** argv) {
 	Snake snake(Direction::Right, starting_position, STARTING_LENGTH);
 	Game game(snake);
 	welcome_message();
 	game.draw_map(); // Initial map display
 	game.game_logic();
+	score_screen(game.get_score()); // Display score screen
 }
