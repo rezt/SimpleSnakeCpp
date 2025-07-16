@@ -1,3 +1,3 @@
 # SimpleSnake
 
-Work in progress.
+Simple snake project using C++.
